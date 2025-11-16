@@ -1,0 +1,43 @@
+networks:
+  mynet: #use it for DNS
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "172.20.0.0/16"
+          gateway: "172.20.0.1"
+volumes:
+  data-vol: #use it for DB persistancen
+
+services:
+
+  #DB Docker: docker run -d --mout type=volume,src=data-vol, dst=/var/lib/MySQL --network=mynet
+  mydb:
+   image: stackupiss/northwind-db:v1
+   #build:
+     #context:
+   volumes:
+     - type: volume
+       source: data-vol
+       target: /var/lib/MySQL
+     #- data-vol: /var/lib/MySQL 
+   environment:
+     - MYSQL_ROOT_PASSWORD=changeit
+   networks:
+     mynet:
+
+
+ #App Docker: docker run -d -p 8080:3000 -e ... --network=mynet
+  myapp:
+    image: stackupiss/northwind-app:v1
+    environment:
+     - DB_HOST=mydb
+     - DB_USER=root
+     - DB_PASSWORD=changeit
+
+    ports:
+     - 8081:3000
+    networks:
+      mynet:
+    depends_on:
+      mydb:
+        condition: service_started
